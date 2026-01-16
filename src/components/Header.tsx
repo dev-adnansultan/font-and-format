@@ -1,4 +1,4 @@
-import { FileText, Download, Sparkles } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from './FileUpload';
 
@@ -10,18 +10,19 @@ interface HeaderProps {
 
 export const Header = ({ onFileLoad, onExport, hasContent }: HeaderProps) => {
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-card border-b border-border">
+    <header className="flex items-center justify-between px-6 py-3 bg-[#274364] border-b border-border">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-          <FileText className="w-5 h-5 text-primary" />
-        </div>
+        <img 
+          src="/logo.svg" 
+          alt="Font and Format Logo" 
+          className="w-10 h-10 rounded-lg"
+        />
         <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            TXT to PDF
-            <Sparkles className="w-4 h-4 text-accent" />
+          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
+            Font and Format
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Convert text to beautifully formatted PDFs
+          <p className="text-sm text-white/70">
+            Professional Document Editor
           </p>
         </div>
       </div>
@@ -31,7 +32,7 @@ export const Header = ({ onFileLoad, onExport, hasContent }: HeaderProps) => {
         <Button 
           onClick={onExport}
           disabled={!hasContent}
-          className="gap-2"
+          className="gap-2 bg-[#3FBCBA] hover:bg-[#35a5a3] text-white"
         >
           <Download className="w-4 h-4" />
           Export PDF

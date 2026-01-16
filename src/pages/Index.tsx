@@ -5,6 +5,7 @@ import { BlockEditor, BlockEditorRef, FormatState } from '@/components/BlockEdit
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { PageLayoutPanel } from '@/components/PageLayoutPanel';
 import { generatePDF } from '@/utils/pdfGenerator';
+import { pdfExportLimiter, imageUploadLimiter } from '@/utils/rateLimiter';
 import { PageLayout } from '@/types/editor';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,27 @@ const Index = () => {
     editorRef.current?.applyFormat(command, value);
   }, []);
 
+  const handleInsertImage = useCallback((file: File) => {
+    // Check rate limit for image uploads
+    if (!imageUploadLimiter.canMakeRequest()) {
+      const timeUntilReset = imageUploadLimiter.getFormattedTimeUntilReset();
+      toast.error(`Image upload limit reached. Try again in ${timeUntilReset}.`);
+      return;
+    }
+    
+    imageUploadLimiter.recordRequest();
+    editorRef.current?.insertImage(file);
+    
+    const remaining = imageUploadLimiter.getRemainingRequests();
+    if (remaining <= 3) {
+      toast.warning(`${remaining} image upload${remaining !== 1 ? 's' : ''} remaining this hour`);
+    }
+  }, []);
+
+  const handleInsertLink = useCallback((url: string, text: string) => {
+    editorRef.current?.insertLink(url, text);
+  }, []);
+
   const handleFileLoad = useCallback((fileContent: string) => {
     // Convert plain text to HTML paragraphs
     const paragraphs = fileContent.split(/\n\n+/).filter(p => p.trim());
@@ -63,9 +85,22 @@ const Index = () => {
       return;
     }
 
+    // Check rate limit for PDF exports
+    if (!pdfExportLimiter.canMakeRequest()) {
+      const timeUntilReset = pdfExportLimiter.getFormattedTimeUntilReset();
+      toast.error(`Export limit reached. Try again in ${timeUntilReset}.`);
+      return;
+    }
+
     try {
+      pdfExportLimiter.recordRequest();
       generatePDF(content, pageLayout);
       toast.success('PDF exported successfully!');
+      
+      const remaining = pdfExportLimiter.getRemainingRequests();
+      if (remaining <= 3) {
+        toast.info(`${remaining} export${remaining !== 1 ? 's' : ''} remaining this hour`);
+      }
     } catch (error) {
       toast.error('Failed to generate PDF');
       console.error(error);
@@ -122,6 +157,8 @@ const Index = () => {
           <div className="flex-1 flex flex-col p-6 gap-4">
             <FormatToolbar
               onFormat={handleFormat}
+              onInsertImage={handleInsertImage}
+              onInsertLink={handleInsertLink}
               hasSelection={hasSelection}
               formatState={formatState}
             />

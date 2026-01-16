@@ -1,14 +1,31 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
 
+export interface FormatState {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strikeThrough: boolean;
+  justifyLeft: boolean;
+  justifyCenter: boolean;
+  justifyRight: boolean;
+  justifyFull: boolean;
+  insertUnorderedList: boolean;
+  insertOrderedList: boolean;
+  heading: 'p' | 'h1' | 'h2' | 'h3';
+}
+
 interface BlockEditorProps {
   content: string;
   onContentChange: (content: string) => void;
   onSelectionChange: (hasSelection: boolean) => void;
+  onFormatStateChange?: (formatState: FormatState) => void;
 }
 
 export interface BlockEditorRef {
   applyFormat: (command: string, value?: string) => void;
+  insertImage: (file: File) => void;
+  insertLink: (url: string, text: string) => void;
   getContent: () => string;
   focus: () => void;
 }
@@ -16,27 +33,164 @@ export interface BlockEditorRef {
 const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({ 
   content, 
   onContentChange,
-  onSelectionChange 
+  onSelectionChange,
+  onFormatStateChange
 }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
 
+  // Get current format state from selection
+  const getFormatState = useCallback((): FormatState => {
+    const state: FormatState = {
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      strikeThrough: document.queryCommandState('strikeThrough'),
+      justifyLeft: document.queryCommandState('justifyLeft'),
+      justifyCenter: document.queryCommandState('justifyCenter'),
+      justifyRight: document.queryCommandState('justifyRight'),
+      justifyFull: document.queryCommandState('justifyFull'),
+      insertUnorderedList: document.queryCommandState('insertUnorderedList'),
+      insertOrderedList: document.queryCommandState('insertOrderedList'),
+      heading: 'p',
+    };
+
+    // Check heading level
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      let node: Node | null = selection.anchorNode;
+      while (node && node !== editorRef.current) {
+        if (node.nodeName === 'H1') {
+          state.heading = 'h1';
+          break;
+        } else if (node.nodeName === 'H2') {
+          state.heading = 'h2';
+          break;
+        } else if (node.nodeName === 'H3') {
+          state.heading = 'h3';
+          break;
+        }
+        node = node.parentNode;
+      }
+    }
+
+    return state;
+  }, []);
+
   // Expose methods to parent
   useImperativeHandle(ref, () => ({
     applyFormat: (command: string, value?: string) => {
+      // Ensure editor has focus before executing command
+      editorRef.current?.focus();
+      
       // Handle formatBlock specially for proper tag wrapping
       if (command === 'formatBlock') {
         document.execCommand(command, false, `<${value}>`);
       } else {
         document.execCommand(command, false, value);
       }
+      
+      // Trigger content change after formatting - use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        if (editorRef.current) {
+          const newContent = editorRef.current.innerHTML;
+          isInternalChange.current = true;
+          onContentChange(newContent);
+          
+          // Update format state
+          if (onFormatStateChange) {
+            onFormatStateChange(getFormatState());
+          }
+          
+          setTimeout(() => {
+            isInternalChange.current = false;
+          }, 0);
+        }
+      }, 0);
+    },
+    insertImage: (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        if (dataUrl) {
+          editorRef.current?.focus();
+          
+          // Create image element with styling
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.style.display = 'block';
+          img.style.margin = '10px 0';
+          img.setAttribute('contenteditable', 'false');
+          
+          // Insert at cursor position
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(img);
+            
+            // Move cursor after image
+            range.setStartAfter(img);
+            range.setEndAfter(img);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          } else {
+            editorRef.current?.appendChild(img);
+          }
+          
+          // Trigger content change
+          setTimeout(() => {
+            if (editorRef.current) {
+              isInternalChange.current = true;
+              onContentChange(editorRef.current.innerHTML);
+              setTimeout(() => {
+                isInternalChange.current = false;
+              }, 0);
+            }
+          }, 0);
+        }
+      };
+      reader.readAsDataURL(file);
+    },
+    insertLink: (url: string, text: string) => {
       editorRef.current?.focus();
-      // Trigger content change after formatting
-      if (editorRef.current) {
-        isInternalChange.current = true;
-        onContentChange(editorRef.current.innerHTML);
+      
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        
+        // If there's selected text, wrap it in a link
+        if (!selection.isCollapsed) {
+          document.execCommand('createLink', false, url);
+        } else {
+          // Insert new link with text
+          const link = document.createElement('a');
+          link.href = url;
+          link.textContent = text;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          
+          range.deleteContents();
+          range.insertNode(link);
+          
+          // Move cursor after link
+          range.setStartAfter(link);
+          range.setEndAfter(link);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        
+        // Trigger content change
         setTimeout(() => {
-          isInternalChange.current = false;
+          if (editorRef.current) {
+            isInternalChange.current = true;
+            onContentChange(editorRef.current.innerHTML);
+            setTimeout(() => {
+              isInternalChange.current = false;
+            }, 0);
+          }
         }, 0);
       }
     },
@@ -53,18 +207,23 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
     }
   }, [content]);
 
-  // Handle selection changes
+  // Handle selection changes and format state
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
       const hasSelection = selection && !selection.isCollapsed && 
         editorRef.current?.contains(selection.anchorNode);
       onSelectionChange(!!hasSelection);
+      
+      // Update format state when selection changes
+      if (onFormatStateChange && editorRef.current?.contains(selection?.anchorNode || null)) {
+        onFormatStateChange(getFormatState());
+      }
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, [onSelectionChange]);
+  }, [onSelectionChange, onFormatStateChange, getFormatState]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
@@ -102,7 +261,7 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
   // Check if list item is empty
   const isListItemEmpty = useCallback((li: HTMLLIElement) => {
     const text = li.textContent || '';
-    return text.trim() === '' || text === '\u200B'; // Check for zero-width space too
+    return text.trim() === '' || text === '\u200B';
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -112,14 +271,17 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
         case 'b':
           e.preventDefault();
           document.execCommand('bold', false);
+          if (onFormatStateChange) onFormatStateChange(getFormatState());
           break;
         case 'i':
           e.preventDefault();
           document.execCommand('italic', false);
+          if (onFormatStateChange) onFormatStateChange(getFormatState());
           break;
         case 'u':
           e.preventDefault();
           document.execCommand('underline', false);
+          if (onFormatStateChange) onFormatStateChange(getFormatState());
           break;
       }
       return;
@@ -131,10 +293,8 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
     if (e.key === 'Tab' && listContext?.listItem) {
       e.preventDefault();
       if (e.shiftKey) {
-        // Outdent
         document.execCommand('outdent', false);
       } else {
-        // Indent
         document.execCommand('indent', false);
       }
       return;
@@ -144,19 +304,14 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
     if (e.key === 'Enter' && !e.shiftKey && listContext?.listItem && listContext?.list) {
       const { listItem, list } = listContext;
       
-      // If the list item is empty, exit the list
       if (isListItemEmpty(listItem)) {
         e.preventDefault();
-        
-        // Remove the empty list item
         listItem.remove();
         
-        // If list is now empty, remove it too
         if (list.children.length === 0) {
           list.remove();
         }
         
-        // Insert a new paragraph after the list
         const p = document.createElement('p');
         p.innerHTML = '<br>';
         
@@ -170,7 +325,6 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
           editorRef.current.appendChild(p);
         }
         
-        // Move cursor to the new paragraph
         const selection = window.getSelection();
         const range = document.createRange();
         range.setStart(p, 0);
@@ -178,7 +332,6 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
         selection?.removeAllRanges();
         selection?.addRange(range);
         
-        // Trigger content change
         if (editorRef.current) {
           isInternalChange.current = true;
           onContentChange(editorRef.current.innerHTML);
@@ -188,7 +341,6 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
         }
         return;
       }
-      // If not empty, let the browser handle creating a new list item naturally
     }
 
     // Handle Backspace at the start of a list item
@@ -197,17 +349,13 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         
-        // Check if cursor is at the very start of the list item
         if (range.startOffset === 0 && range.collapsed) {
           const { listItem, list } = listContext;
-          
-          // Check if this is the first list item
           const isFirstItem = listItem === list?.firstElementChild;
           
           if (isFirstItem && isListItemEmpty(listItem)) {
             e.preventDefault();
             
-            // Convert to paragraph
             const p = document.createElement('p');
             p.innerHTML = '<br>';
             
@@ -215,20 +363,17 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
               list.parentNode.insertBefore(p, list);
               listItem.remove();
               
-              // If list is now empty, remove it
               if (list.children.length === 0) {
                 list.remove();
               }
             }
             
-            // Move cursor to the paragraph
             const newRange = document.createRange();
             newRange.setStart(p, 0);
             newRange.collapse(true);
             selection.removeAllRanges();
             selection.addRange(newRange);
             
-            // Trigger content change
             if (editorRef.current) {
               isInternalChange.current = true;
               onContentChange(editorRef.current.innerHTML);
@@ -241,11 +386,10 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
         }
       }
     }
-  }, [getListContext, isListItemEmpty, onContentChange]);
+  }, [getListContext, isListItemEmpty, onContentChange, onFormatStateChange, getFormatState]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault();
-    // Paste as plain text to avoid formatting issues
     const text = e.clipboardData.getData('text/plain');
     document.execCommand('insertText', false, text);
   }, []);
@@ -266,7 +410,11 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
           "[&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:my-2",
           "[&_ul]:list-disc [&_ul]:ml-6",
           "[&_ol]:list-decimal [&_ol]:ml-6",
-          "[&_li]:my-1"
+          "[&_li]:my-1",
+          "[&>blockquote]:border-l-4 [&>blockquote]:border-gray-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-4 [&>blockquote]:text-gray-600",
+          "[&>pre]:bg-gray-100 [&>pre]:p-4 [&>pre]:rounded [&>pre]:font-mono [&>pre]:text-sm [&>pre]:my-4 [&>pre]:overflow-x-auto",
+          "[&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800",
+          "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:my-2"
         )}
         onInput={handleInput}
         onKeyDown={handleKeyDown}

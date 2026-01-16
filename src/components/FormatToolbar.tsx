@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { 
   Bold, 
   Italic, 
@@ -12,7 +13,18 @@ import {
   Type,
   List,
   ListOrdered,
-  Strikethrough
+  Strikethrough,
+  Image,
+  Link,
+  Undo,
+  Redo,
+  Subscript,
+  Superscript,
+  Quote,
+  Code,
+  Minus,
+  Highlighter,
+  Palette
 } from 'lucide-react';
 import { 
   Select,
@@ -22,42 +34,124 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { FormatState } from './BlockEditor';
 
 interface FormatToolbarProps {
   onFormat: (command: string, value?: string) => void;
+  onInsertImage: (file: File) => void;
+  onInsertLink: (url: string, text: string) => void;
   hasSelection: boolean;
   formatState: FormatState;
 }
 
+const TEXT_COLORS = [
+  '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff',
+  '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff',
+  '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#cfe2f3', '#d9d2e9', '#ead1dc',
+];
+
+const HIGHLIGHT_COLORS = [
+  'transparent', '#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#ff0000', '#0000ff', '#ffa500', '#800080', '#008000',
+];
+
 export const FormatToolbar = ({
   onFormat,
+  onInsertImage,
+  onInsertLink,
   hasSelection,
   formatState,
 }: FormatToolbarProps) => {
   const fontSizes = ['1', '2', '3', '4', '5', '6', '7'];
+  const fontFamilies = [
+    { value: 'Arial', label: 'Arial' },
+    { value: 'Times New Roman', label: 'Times New Roman' },
+    { value: 'Courier New', label: 'Courier New' },
+    { value: 'Georgia', label: 'Georgia' },
+    { value: 'Verdana', label: 'Verdana' },
+    { value: 'Comic Sans MS', label: 'Comic Sans' },
+  ];
+  
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Prevent focus loss when clicking toolbar buttons
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onInsertImage(file);
+    }
+    // Reset input
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  const handleInsertLink = () => {
+    const url = prompt('Enter URL:');
+    if (url) {
+      const text = prompt('Enter link text (leave empty to use URL):') || url;
+      onInsertLink(url, text);
+    }
+  };
+
   return (
     <div className={cn(
       "flex items-center gap-1 p-2 bg-toolbar rounded-lg border border-border animate-fade-in transition-opacity flex-wrap"
     )}>
-      {/* Selection indicator */}
-      <div className={cn(
-        "px-2 py-1 rounded text-xs font-medium mr-2 transition-colors",
-        hasSelection 
-          ? "bg-primary/10 text-primary" 
-          : "bg-muted text-muted-foreground"
-      )}>
-        {hasSelection ? "Text selected" : "Select text to format"}
-      </div>
+      {/* Hidden file input for images */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+
+      {/* Undo/Redo */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('undo')}
+        title="Undo (Ctrl+Z)"
+      >
+        <Undo className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('redo')}
+        title="Redo (Ctrl+Y)"
+      >
+        <Redo className="w-4 h-4" />
+      </button>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Font Family */}
+      <Select
+        defaultValue="Arial"
+        onValueChange={(value) => onFormat('fontName', value)}
+      >
+        <SelectTrigger className="w-[120px] h-8 text-sm" onMouseDown={handleMouseDown}>
+          <SelectValue placeholder="Font" />
+        </SelectTrigger>
+        <SelectContent>
+          {fontFamilies.map((font) => (
+            <SelectItem key={font.value} value={font.value} onMouseDown={handleMouseDown}>
+              <span style={{ fontFamily: font.value }}>{font.label}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Font Size */}
       <Select
@@ -75,6 +169,64 @@ export const FormatToolbar = ({
           ))}
         </SelectContent>
       </Select>
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Text Color */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className="toolbar-button"
+            onMouseDown={handleMouseDown}
+            title="Text Color"
+          >
+            <Palette className="w-4 h-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-2" onMouseDown={handleMouseDown}>
+          <div className="grid grid-cols-10 gap-1">
+            {TEXT_COLORS.map((color) => (
+              <button
+                key={color}
+                className="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+                onClick={() => onFormat('foreColor', color)}
+                onMouseDown={handleMouseDown}
+              />
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Highlight Color */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className="toolbar-button"
+            onMouseDown={handleMouseDown}
+            title="Highlight Color"
+          >
+            <Highlighter className="w-4 h-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-2" onMouseDown={handleMouseDown}>
+          <div className="grid grid-cols-5 gap-1">
+            {HIGHLIGHT_COLORS.map((color, i) => (
+              <button
+                key={i}
+                className={cn(
+                  "w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform",
+                  color === 'transparent' && "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZmZmIi8+PHJlY3Qgd2lkdGg9IjUiIGhlaWdodD0iNSIgZmlsbD0iI2NjYyIvPjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSI1IiBoZWlnaHQ9IjUiIGZpbGw9IiNjY2MiLz48L3N2Zz4=')]"
+                )}
+                style={{ backgroundColor: color === 'transparent' ? undefined : color }}
+                onClick={() => onFormat('hiliteColor', color)}
+                onMouseDown={handleMouseDown}
+                title={color === 'transparent' ? 'Remove highlight' : undefined}
+              />
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -110,6 +262,22 @@ export const FormatToolbar = ({
         title={formatState.strikeThrough ? "Remove Strikethrough" : "Strikethrough"}
       >
         <Strikethrough className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('subscript')}
+        title="Subscript"
+      >
+        <Subscript className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('superscript')}
+        title="Superscript"
+      >
+        <Superscript className="w-4 h-4" />
       </button>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -202,6 +370,60 @@ export const FormatToolbar = ({
         title={formatState.insertOrderedList ? "Remove Numbered List" : "Numbered List"}
       >
         <ListOrdered className="w-4 h-4" />
+      </button>
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Block Quote */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('formatBlock', 'blockquote')}
+        title="Block Quote"
+      >
+        <Quote className="w-4 h-4" />
+      </button>
+
+      {/* Code Block */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('formatBlock', 'pre')}
+        title="Code Block"
+      >
+        <Code className="w-4 h-4" />
+      </button>
+
+      {/* Horizontal Rule */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => onFormat('insertHorizontalRule')}
+        title="Horizontal Line"
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Insert Image */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={() => imageInputRef.current?.click()}
+        title="Insert Image"
+      >
+        <Image className="w-4 h-4" />
+      </button>
+
+      {/* Insert Link */}
+      <button
+        className="toolbar-button"
+        onMouseDown={handleMouseDown}
+        onClick={handleInsertLink}
+        title="Insert Link"
+      >
+        <Link className="w-4 h-4" />
       </button>
     </div>
   );

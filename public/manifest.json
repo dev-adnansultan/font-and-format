@@ -1,0 +1,39 @@
+{
+  "name": "Font and Format - Online Document Editor",
+  "short_name": "Font and Format",
+  "description": "Free online document editor with rich text formatting and PDF export",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#274364",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "productivity",
+    "utilities",
+    "business"
+  ],
+  "keywords": [
+    "document editor",
+    "PDF converter",
+    "text editor",
+    "rich text",
+    "formatting",
+    "word processor"
+  ],
+  "lang": "en-US",
+  "dir": "ltr"
+}
