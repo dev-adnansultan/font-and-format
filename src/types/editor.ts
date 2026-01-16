@@ -1,5 +1,3 @@
-import { generateUUID } from '@/utils/uuid';
-
 export type HeadingLevel = 'p' | 'h1' | 'h2' | 'h3';
 export type TextAlign = 'left' | 'center' | 'right' | 'justify';
 export type FontFamily = 'sans' | 'serif' | 'mono';
@@ -96,6 +94,20 @@ export const TEXT_COLORS = [
   '#dfe6e9',
   '#636e72',
 ];
+
+// Inline UUID generation to avoid circular dependency
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback implementation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 export const createBlock = (content: string = '', style: Partial<BlockStyle> = {}): TextBlock => ({
   id: generateUUID(),
