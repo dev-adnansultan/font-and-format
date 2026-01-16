@@ -10,7 +10,10 @@ import {
   Palette,
   CheckCircle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Github,
+  Mail,
+  ExternalLink
 } from 'lucide-react';
 
 const Landing = () => {
@@ -43,9 +46,31 @@ const Landing = () => {
             <img src="/logo.svg" alt="Font and Format" className="w-10 h-10 rounded-lg" />
             <span className="text-xl font-semibold text-white">Font and Format</span>
           </div>
+          <nav className="hidden md:flex items-center gap-6">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-white transition-colors"
+            >
+              Home
+            </button>
+            <button 
+              onClick={() => navigate('/about')}
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              About
+            </button>
+            <Button 
+              onClick={() => navigate('/editor')}
+              className="bg-[#3FBCBA] hover:bg-[#35a5a3] text-white gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Open Editor
+            </Button>
+          </nav>
+          {/* Mobile menu button */}
           <Button 
             onClick={() => navigate('/editor')}
-            className="bg-[#3FBCBA] hover:bg-[#35a5a3] text-white"
+            className="md:hidden bg-[#3FBCBA] hover:bg-[#35a5a3] text-white"
           >
             Open Editor
           </Button>
@@ -56,7 +81,6 @@ const Landing = () => {
       <section className="container mx-auto px-6 py-20 text-center">
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-white/80 text-sm">
-            <Sparkles className="w-4 h-4 text-[#3FBCBA]" />
             Free Online Document Editor
           </span>
         </div>
@@ -181,15 +205,64 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1a2d42] py-8">
+      <footer className="bg-[#1a2d42] py-12">
         <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src="/logo.svg" alt="Font and Format" className="w-8 h-8 rounded" />
-              <span className="text-white/80">Font and Format</span>
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/logo.svg" alt="Font and Format" className="w-10 h-10 rounded-lg" />
+                <span className="text-xl font-semibold text-white">Font and Format</span>
+              </div>
+              <p className="text-white/60">
+                Free online document editor with rich text formatting and PDF export.
+              </p>
             </div>
-            <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Font and Format. Free online document editor.
+            <div>
+              <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2">
+                <li>
+                  <button 
+                    onClick={() => navigate('/')}
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    Home
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/editor')}
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    Editor
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/about')}
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    About
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Get Started</h4>
+              <p className="text-white/60 mb-4">
+                Create your first document in seconds. No signup required.
+              </p>
+              <Button 
+                onClick={() => navigate('/editor')}
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10"
+              >
+                Open Editor
+              </Button>
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-8">
+            <p className="text-white/50 text-sm text-center">
+              © {new Date().getFullYear()} Font and Format. Free online document editor. All rights reserved.
             </p>
           </div>
         </div>
