@@ -27,7 +27,7 @@ interface BlockEditorProps {
 export interface BlockEditorRef {
   applyFormat: (command: string, value?: string) => void;
   insertImage: (file: File) => void;
-  insertLink: (url: string, text: string) => void;
+  insertLink: (url: string) => void;
   getContent: () => string;
   focus: () => void;
 }
@@ -159,45 +159,35 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
       };
       reader.readAsDataURL(file);
     },
-    insertLink: (url: string, text: string) => {
+    insertLink: (url: string) => {
       editorRef.current?.focus();
       
+      // Use execCommand to create link on selected text
+      document.execCommand('createLink', false, url);
+      
+      // Find the newly created link and add target="_blank"
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        
-        // If there's selected text, wrap it in a link
-        if (!selection.isCollapsed) {
-          document.execCommand('createLink', false, url);
-        } else {
-          // Insert new link with text
-          const link = document.createElement('a');
-          link.href = url;
-          link.textContent = text;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          
-          range.deleteContents();
-          range.insertNode(link);
-          
-          // Move cursor after link
-          range.setStartAfter(link);
-          range.setEndAfter(link);
-          selection.removeAllRanges();
-          selection.addRange(range);
+        let node: Node | null = selection.anchorNode;
+        while (node && node.nodeName !== 'A' && node !== editorRef.current) {
+          node = node.parentNode;
         }
-        
-        // Trigger content change
-        setTimeout(() => {
-          if (editorRef.current) {
-            isInternalChange.current = true;
-            onContentChange(editorRef.current.innerHTML);
-            setTimeout(() => {
-              isInternalChange.current = false;
-            }, 0);
-          }
-        }, 0);
+        if (node && node.nodeName === 'A') {
+          (node as HTMLAnchorElement).target = '_blank';
+          (node as HTMLAnchorElement).rel = 'noopener noreferrer';
+        }
       }
+      
+      // Trigger content change
+      setTimeout(() => {
+        if (editorRef.current) {
+          isInternalChange.current = true;
+          onContentChange(editorRef.current.innerHTML);
+          setTimeout(() => {
+            isInternalChange.current = false;
+          }, 0);
+        }
+      }, 0);
     },
     getContent: () => editorRef.current?.innerHTML || '',
     focus: () => editorRef.current?.focus()

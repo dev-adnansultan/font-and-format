@@ -55,7 +55,7 @@ import { FormatState } from './BlockEditor';
 interface FormatToolbarProps {
   onFormat: (command: string, value?: string) => void;
   onInsertImage: (file: File) => void;
-  onInsertLink: (url: string, text: string) => void;
+  onInsertLink: (url: string) => void;
   hasSelection: boolean;
   formatState: FormatState;
 }
@@ -90,7 +90,7 @@ export const FormatToolbar = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
+  const savedSelectionRef = useRef<Range | null>(null);
 
   // Prevent focus loss when clicking toolbar buttons
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -109,18 +109,35 @@ export const FormatToolbar = ({
   };
 
   const handleOpenLinkDialog = () => {
+    // Save the current selection before opening dialog
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+    }
     setLinkUrl('');
-    setLinkText('');
     setLinkDialogOpen(true);
   };
 
   const handleInsertLink = () => {
     if (linkUrl) {
-      onInsertLink(linkUrl, linkText || linkUrl);
+      // Restore selection before inserting link
+      if (savedSelectionRef.current) {
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(savedSelectionRef.current);
+      }
+      onInsertLink(linkUrl);
       setLinkDialogOpen(false);
       setLinkUrl('');
-      setLinkText('');
+      savedSelectionRef.current = null;
     }
+  };
+  
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      savedSelectionRef.current = null;
+    }
+    setLinkDialogOpen(open);
   };
 
   return (
@@ -447,7 +464,7 @@ export const FormatToolbar = ({
       </button>
 
       {/* Link Dialog */}
-      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+      <Dialog open={linkDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
@@ -469,25 +486,9 @@ export const FormatToolbar = ({
                 }}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="link-text">Link Text (optional)</Label>
-              <Input
-                id="link-text"
-                type="text"
-                placeholder="Display text"
-                value={linkText}
-                onChange={(e) => setLinkText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleInsertLink();
-                  }
-                }}
-              />
-            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>
+            <Button variant="outline" onClick={() => handleDialogClose(false)}>
               Cancel
             </Button>
             <Button onClick={handleInsertLink} disabled={!linkUrl}>

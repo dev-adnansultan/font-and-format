@@ -34,6 +34,8 @@ const defaultFormatState: FormatState = {
   insertUnorderedList: false,
   insertOrderedList: false,
   heading: 'p',
+  blockquote: false,
+  codeBlock: false,
 };
 
 const Editor = () => {
@@ -81,8 +83,8 @@ const Editor = () => {
     }
   }, []);
 
-  const handleInsertLink = useCallback((url: string, text: string) => {
-    editorRef.current?.insertLink(url, text);
+  const handleInsertLink = useCallback((url: string) => {
+    editorRef.current?.insertLink(url);
   }, []);
 
   const handleFileLoad = useCallback((fileContent: string) => {
