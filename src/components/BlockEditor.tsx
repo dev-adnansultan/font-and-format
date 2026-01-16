@@ -1,5 +1,14 @@
-import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
 
 export interface FormatState {
   bold: boolean;
@@ -40,6 +49,8 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
 }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [clickedLinkUrl, setClickedLinkUrl] = useState('');
 
   // Get current format state from selection
   const getFormatState = useCallback((): FormatState => {
@@ -522,6 +533,26 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
     document.execCommand('insertText', false, text);
   }, []);
 
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    
+    // Check if clicked on a link
+    if (target.tagName === 'A') {
+      e.preventDefault();
+      const href = (target as HTMLAnchorElement).href;
+      setClickedLinkUrl(href);
+      setLinkDialogOpen(true);
+    }
+  }, []);
+
+  const handleOpenLink = () => {
+    if (clickedLinkUrl) {
+      window.open(clickedLinkUrl, '_blank', 'noopener,noreferrer');
+    }
+    setLinkDialogOpen(false);
+    setClickedLinkUrl('');
+  };
+
   return (
     <div className="flex-1 bg-editor rounded-xl p-6 overflow-auto">
       <div
@@ -541,16 +572,41 @@ const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(({
           "[&_li]:my-1",
           "[&>blockquote]:border-l-4 [&>blockquote]:border-gray-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-4 [&>blockquote]:text-gray-600",
           "[&>pre]:bg-gray-100 [&>pre]:p-4 [&>pre]:rounded [&>pre]:font-mono [&>pre]:text-sm [&>pre]:my-4 [&>pre]:overflow-x-auto",
-          "[&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800",
+          "[&_a]:text-blue-600 [&_a]:underline [&_a]:hover:text-blue-800 [&_a]:cursor-pointer",
           "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:my-2"
         )}
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        onClick={handleClick}
         style={{
           lineHeight: 1.6,
         }}
       />
+
+      {/* Link Click Dialog */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ExternalLink className="w-5 h-5" />
+              Open Link
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">Do you want to open this link?</p>
+            <p className="text-sm font-medium break-all bg-muted p-2 rounded">{clickedLinkUrl}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleOpenLink}>
+              Open Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
