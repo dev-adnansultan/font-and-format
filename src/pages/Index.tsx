@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Settings, List } from 'lucide-react';
 
 const Index = () => {
-  const [blocks, setBlocks] = useState<TextBlock[]>([
+  const [blocks, setBlocks] = useState<TextBlock[]>(() => [
     createBlock('', DEFAULT_BLOCK_STYLE),
   ]);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
