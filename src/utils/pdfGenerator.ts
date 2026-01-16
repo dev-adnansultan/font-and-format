@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import { PageLayout } from '@/types/editor';
 
-export const generatePDF = (htmlContent: string, pageLayout: PageLayout): void => {
+export const generatePDF = (htmlContent: string, pageLayout: PageLayout, documentName: string = 'document'): void => {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -21,6 +21,12 @@ export const generatePDF = (htmlContent: string, pageLayout: PageLayout): void =
   let yPosition = margin.top;
   let pageNumber = 1;
 
+  // Sanitize document name for filename
+  const sanitizedName = documentName
+    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .replace(/\s+/g, '_')
+    .toLowerCase() || 'document';
+
   // Function to add header
   const addHeader = () => {
     if (pageLayout.showHeader && pageLayout.headerText) {
@@ -32,7 +38,7 @@ export const generatePDF = (htmlContent: string, pageLayout: PageLayout): void =
       let headerText = pageLayout.headerText
         .replace('{page}', pageNumber.toString())
         .replace('{date}', new Date().toLocaleDateString())
-        .replace('{title}', 'Document');
+        .replace('{title}', documentName);
 
       pdf.text(headerText, margin.left, headerY + 5);
     }
@@ -50,7 +56,7 @@ export const generatePDF = (htmlContent: string, pageLayout: PageLayout): void =
         .replace('{page}', pageNumber.toString())
         .replace('{total}', '1')
         .replace('{date}', new Date().toLocaleDateString())
-        .replace('{title}', 'Document');
+        .replace('{title}', documentName);
 
       pdf.text(footerText, margin.left, footerY - 5);
     }
@@ -130,5 +136,5 @@ export const generatePDF = (htmlContent: string, pageLayout: PageLayout): void =
   // Process all elements
   Array.from(elements).forEach(processElement);
 
-  pdf.save('document.pdf');
+  pdf.save(`${sanitizedName}.pdf`);
 };

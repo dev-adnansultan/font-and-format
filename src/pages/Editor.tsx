@@ -1,15 +1,26 @@
 import { useState, useRef, useCallback } from 'react';
-import { Header } from '@/components/Header';
+import { useNavigate } from 'react-router-dom';
 import { FormatToolbar } from '@/components/FormatToolbar';
 import { BlockEditor, BlockEditorRef, FormatState } from '@/components/BlockEditor';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { PageLayoutPanel } from '@/components/PageLayoutPanel';
+import { FileUpload } from '@/components/FileUpload';
 import { generatePDF } from '@/utils/pdfGenerator';
 import { pdfExportLimiter, imageUploadLimiter } from '@/utils/rateLimiter';
 import { PageLayout } from '@/types/editor';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { 
+  Settings, 
+  PanelLeftClose, 
+  PanelLeft, 
+  Download, 
+  Home,
+  Pencil,
+  Check,
+  X
+} from 'lucide-react';
 
 const defaultFormatState: FormatState = {
   bold: false,
@@ -25,11 +36,15 @@ const defaultFormatState: FormatState = {
   heading: 'p',
 };
 
-const Index = () => {
+const Editor = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [content, setContent] = useState('<p><br></p>');
   const [hasSelection, setHasSelection] = useState(false);
   const [formatState, setFormatState] = useState<FormatState>(defaultFormatState);
+  const [documentName, setDocumentName] = useState('Untitled Document');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
   const [pageLayout, setPageLayout] = useState<PageLayout>({
     marginTop: 20,
     marginBottom: 20,
@@ -44,13 +59,13 @@ const Index = () => {
   });
   
   const editorRef = useRef<BlockEditorRef>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const handleFormat = useCallback((command: string, value?: string) => {
     editorRef.current?.applyFormat(command, value);
   }, []);
 
   const handleInsertImage = useCallback((file: File) => {
-    // Check rate limit for image uploads
     if (!imageUploadLimiter.canMakeRequest()) {
       const timeUntilReset = imageUploadLimiter.getFormattedTimeUntilReset();
       toast.error(`Image upload limit reached. Try again in ${timeUntilReset}.`);
@@ -71,7 +86,6 @@ const Index = () => {
   }, []);
 
   const handleFileLoad = useCallback((fileContent: string) => {
-    // Convert plain text to HTML paragraphs
     const paragraphs = fileContent.split(/\n\n+/).filter(p => p.trim());
     const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
     setContent(htmlContent || '<p><br></p>');
@@ -85,7 +99,6 @@ const Index = () => {
       return;
     }
 
-    // Check rate limit for PDF exports
     if (!pdfExportLimiter.canMakeRequest()) {
       const timeUntilReset = pdfExportLimiter.getFormattedTimeUntilReset();
       toast.error(`Export limit reached. Try again in ${timeUntilReset}.`);
@@ -94,7 +107,7 @@ const Index = () => {
 
     try {
       pdfExportLimiter.recordRequest();
-      generatePDF(content, pageLayout);
+      generatePDF(content, pageLayout, documentName);
       toast.success('PDF exported successfully!');
       
       const remaining = pdfExportLimiter.getRemainingRequests();
@@ -105,22 +118,111 @@ const Index = () => {
       toast.error('Failed to generate PDF');
       console.error(error);
     }
-  }, [content, pageLayout, hasContent]);
+  }, [content, pageLayout, hasContent, documentName]);
+
+  const startEditingName = () => {
+    setTempName(documentName);
+    setIsEditingName(true);
+    setTimeout(() => nameInputRef.current?.select(), 0);
+  };
+
+  const saveName = () => {
+    const newName = tempName.trim() || 'Untitled Document';
+    setDocumentName(newName);
+    setIsEditingName(false);
+  };
+
+  const cancelEditingName = () => {
+    setIsEditingName(false);
+    setTempName('');
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveName();
+    } else if (e.key === 'Escape') {
+      cancelEditingName();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header 
-        onFileLoad={handleFileLoad}
-        onExport={handleExport}
-        hasContent={hasContent}
-      />
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-3 bg-[#274364] border-b border-border">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="text-white/70 hover:text-white hover:bg-white/10"
+            title="Back to Home"
+          >
+            <Home className="w-4 h-4" />
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="Font and Format" className="w-8 h-8 rounded" />
+            
+            {/* Document Name */}
+            {isEditingName ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  ref={nameInputRef}
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onKeyDown={handleNameKeyDown}
+                  onBlur={saveName}
+                  className="h-8 w-48 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                  placeholder="Document name"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={saveName}
+                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cancelEditingName}
+                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={startEditingName}
+                className="flex items-center gap-2 text-white hover:bg-white/10 px-2 py-1 rounded transition-colors group"
+              >
+                <span className="font-medium">{documentName}</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-70 transition-opacity" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <FileUpload onFileLoad={handleFileLoad} />
+          <Button 
+            onClick={handleExport}
+            disabled={!hasContent}
+            className="gap-2 bg-[#3FBCBA] hover:bg-[#35a5a3] text-white"
+          >
+            <Download className="w-4 h-4" />
+            Export PDF
+          </Button>
+        </div>
+      </header>
 
       <div className="flex-1 flex">
         {/* Left Sidebar */}
         <div className={`border-r bg-card transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-12'}`}>
-          {/* Toggle Button */}
           <div className="flex items-center justify-between p-2 border-b">
-            {sidebarOpen && <span className="text-sm font-medium">Sidebar</span>}
+            {sidebarOpen && <span className="text-sm font-medium">Page Layout</span>}
             <Button
               variant="ghost"
               size="sm"
@@ -182,4 +284,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Editor;
