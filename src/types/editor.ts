@@ -1,6 +1,7 @@
 export type HeadingLevel = 'p' | 'h1' | 'h2' | 'h3';
 export type TextAlign = 'left' | 'center' | 'right' | 'justify';
 export type FontFamily = 'sans' | 'serif' | 'mono';
+export type ListType = 'none' | 'unordered' | 'ordered';
 
 export interface TextStyle {
   bold: boolean;
@@ -18,6 +19,7 @@ export interface BlockStyle {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  listType: ListType;
 }
 
 export interface TextBlock {
@@ -53,6 +55,7 @@ export const DEFAULT_BLOCK_STYLE: BlockStyle = {
   bold: false,
   italic: false,
   underline: false,
+  listType: 'none',
 };
 
 export const FONT_FAMILIES: { value: FontFamily; label: string; className: string }[] = [

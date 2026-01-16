@@ -28,24 +28,50 @@ export const BlockEditor = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       const currentBlock = blocks[blockIndex];
-      const newBlock = {
-        id: crypto.randomUUID(),
-        content: '',
-        style: { ...currentBlock.style },
-      };
-      const updatedBlocks = [
-        ...blocks.slice(0, blockIndex + 1),
-        newBlock,
-        ...blocks.slice(blockIndex + 1),
-      ];
-      onBlocksChange(updatedBlocks);
+      const target = e.target as HTMLElement;
+      const content = target.innerText.trim();
       
-      // Focus new block after render
-      setTimeout(() => {
-        const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`) as HTMLElement;
-        newBlockElement?.focus();
-        onBlockSelect(newBlock.id);
-      }, 0);
+      // If current block is empty and is a list item, exit the list
+      if (content === '' && currentBlock.style.listType !== 'none') {
+        const newBlock = {
+          id: crypto.randomUUID(),
+          content: '',
+          style: { ...currentBlock.style, listType: 'none' as const },
+        };
+        const updatedBlocks = [
+          ...blocks.slice(0, blockIndex + 1),
+          newBlock,
+          ...blocks.slice(blockIndex + 1),
+        ];
+        onBlocksChange(updatedBlocks);
+        
+        // Focus new block after render
+        setTimeout(() => {
+          const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`) as HTMLElement;
+          newBlockElement?.focus();
+          onBlockSelect(newBlock.id);
+        }, 0);
+      } else {
+        // Create new block with same list type
+        const newBlock = {
+          id: crypto.randomUUID(),
+          content: '',
+          style: { ...currentBlock.style },
+        };
+        const updatedBlocks = [
+          ...blocks.slice(0, blockIndex + 1),
+          newBlock,
+          ...blocks.slice(blockIndex + 1),
+        ];
+        onBlocksChange(updatedBlocks);
+        
+        // Focus new block after render
+        setTimeout(() => {
+          const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`) as HTMLElement;
+          newBlockElement?.focus();
+          onBlockSelect(newBlock.id);
+        }, 0);
+      }
     }
 
     if (e.key === 'Backspace') {
@@ -68,7 +94,7 @@ export const BlockEditor = ({
     }
   }, [blocks, onBlocksChange, onBlockSelect]);
 
-  const getBlockStyles = (style: BlockStyle) => {
+  const getBlockStyles = (style: BlockStyle, isListItem: boolean = false) => {
     const fontClass = FONT_FAMILIES.find(f => f.value === style.fontFamily)?.className || 'font-sans';
     
     let headingClass = '';
@@ -89,7 +115,8 @@ export const BlockEditor = ({
       headingClass,
       style.bold && 'font-bold',
       style.italic && 'italic',
-      style.underline && 'underline'
+      style.underline && 'underline',
+      isListItem && 'ml-6'
     );
   };
 
@@ -99,29 +126,60 @@ export const BlockEditor = ({
       className="flex-1 bg-editor rounded-xl p-6 overflow-auto"
     >
       <div className="editor-content min-h-[600px]">
-        {blocks.map((block, index) => (
-          <div
-            key={block.id}
-            data-block-id={block.id}
-            contentEditable
-            suppressContentEditableWarning
-            className={cn(
-              "outline-none py-1 px-2 rounded transition-colors min-h-[1.5em]",
-              getBlockStyles(block.style),
-              selectedBlockId === block.id && "bg-primary/5 ring-2 ring-primary/20"
-            )}
-            style={{
-              fontSize: `${block.style.fontSize}px`,
-              color: block.style.textColor,
-              textAlign: block.style.textAlign,
-              lineHeight: block.style.lineHeight,
-            }}
-            onFocus={() => onBlockSelect(block.id)}
-            onInput={(e) => handleBlockChange(block.id, (e.target as HTMLElement).innerText)}
-            onKeyDown={(e) => handleKeyDown(e, block.id, index)}
-            dangerouslySetInnerHTML={{ __html: block.content || '<br>' }}
-          />
-        ))}
+        {blocks.map((block, index) => {
+          const isListItem = block.style.listType !== 'none';
+          const prevBlock = blocks[index - 1];
+          const nextBlock = blocks[index + 1];
+          
+          // Check if this is the start of a new list or continuation
+          const isListStart = isListItem && (!prevBlock || prevBlock.style.listType !== block.style.listType);
+          const isListEnd = isListItem && (!nextBlock || nextBlock.style.listType !== block.style.listType);
+          
+          // Count items in current list for ordered lists
+          let listItemNumber = 1;
+          if (block.style.listType === 'ordered') {
+            for (let i = index - 1; i >= 0; i--) {
+              if (blocks[i].style.listType === 'ordered') {
+                listItemNumber++;
+              } else {
+                break;
+              }
+            }
+          }
+
+          return (
+            <div key={block.id} className="relative">
+              {isListItem && (
+                <div 
+                  className="absolute left-0 top-1 w-6 flex items-center justify-center text-muted-foreground select-none"
+                  style={{ fontSize: `${block.style.fontSize}px` }}
+                >
+                  {block.style.listType === 'unordered' ? '•' : `${listItemNumber}.`}
+                </div>
+              )}
+              <div
+                data-block-id={block.id}
+                contentEditable
+                suppressContentEditableWarning
+                className={cn(
+                  "outline-none py-1 px-2 rounded transition-colors min-h-[1.5em]",
+                  getBlockStyles(block.style, isListItem),
+                  selectedBlockId === block.id && "bg-primary/5 ring-2 ring-primary/20"
+                )}
+                style={{
+                  fontSize: `${block.style.fontSize}px`,
+                  color: block.style.textColor,
+                  textAlign: block.style.textAlign,
+                  lineHeight: block.style.lineHeight,
+                }}
+                onFocus={() => onBlockSelect(block.id)}
+                onInput={(e) => handleBlockChange(block.id, (e.target as HTMLElement).innerText)}
+                onKeyDown={(e) => handleKeyDown(e, block.id, index)}
+                dangerouslySetInnerHTML={{ __html: block.content || '<br>' }}
+              />
+            </div>
+          );
+        })}
         
         {blocks.length === 0 && (
           <div 
@@ -130,7 +188,7 @@ export const BlockEditor = ({
               const newBlock = {
                 id: crypto.randomUUID(),
                 content: '',
-                style: { ...blocks[0]?.style || {} } as BlockStyle,
+                style: { ...DEFAULT_BLOCK_STYLE },
               };
               onBlocksChange([newBlock]);
               setTimeout(() => {

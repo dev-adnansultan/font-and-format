@@ -9,7 +9,9 @@ import {
   Heading1,
   Heading2,
   Heading3,
-  Type
+  Type,
+  List,
+  ListOrdered
 } from 'lucide-react';
 import { 
   Select,
@@ -31,7 +33,8 @@ import {
   TEXT_COLORS,
   HeadingLevel,
   TextAlign,
-  FontFamily
+  FontFamily,
+  ListType
 } from '@/types/editor';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +63,12 @@ export const FormatToolbar = ({
     { align: 'justify', icon: <AlignJustify className="w-4 h-4" /> },
   ];
 
+  const listButtons: { type: ListType; icon: React.ReactNode; label: string }[] = [
+    { type: 'none', icon: <Type className="w-4 h-4" />, label: 'Normal' },
+    { type: 'unordered', icon: <List className="w-4 h-4" />, label: 'Bullet List' },
+    { type: 'ordered', icon: <ListOrdered className="w-4 h-4" />, label: 'Numbered List' },
+  ];
+
   const style = currentStyle || {
     fontFamily: 'sans' as FontFamily,
     fontSize: 16,
@@ -70,6 +79,7 @@ export const FormatToolbar = ({
     bold: false,
     italic: false,
     underline: false,
+    listType: 'none' as ListType,
   };
 
   return (
@@ -218,6 +228,25 @@ export const FormatToolbar = ({
           )}
           onClick={() => onStyleChange({ textAlign: btn.align })}
           title={`Align ${btn.align}`}
+          disabled={!hasSelection}
+        >
+          {btn.icon}
+        </button>
+      ))}
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Lists */}
+      {listButtons.map((btn) => (
+        <button
+          key={btn.type}
+          className={cn(
+            "toolbar-button", 
+            style.listType === btn.type && "active",
+            !hasSelection && "pointer-events-none opacity-50"
+          )}
+          onClick={() => onStyleChange({ listType: btn.type })}
+          title={btn.label}
           disabled={!hasSelection}
         >
           {btn.icon}
