@@ -29,30 +29,82 @@ export const BlockEditor = ({
       e.preventDefault();
       const currentBlock = blocks[blockIndex];
       const target = e.target as HTMLElement;
-      const content = target.innerText.trim();
+      const selection = window.getSelection();
       
-      // If current block is empty and is a list item, exit the list
-      if (content === '' && currentBlock.style.listType !== 'none') {
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(target);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        const cursorPosition = preCaretRange.toString().length;
+        
+        // Get the full text content
+        const fullText = target.innerText;
+        const textBeforeCursor = fullText.substring(0, cursorPosition);
+        const textAfterCursor = fullText.substring(cursorPosition);
+        
+        // Check if current block is empty and is a list item - exit the list
+        if (fullText.trim() === '' && currentBlock.style.listType !== 'none') {
+          const newBlock = {
+            id: crypto.randomUUID(),
+            content: '',
+            style: { ...currentBlock.style, listType: 'none' as const },
+          };
+          const updatedBlocks = [
+            ...blocks.slice(0, blockIndex + 1),
+            newBlock,
+            ...blocks.slice(blockIndex + 1),
+          ];
+          onBlocksChange(updatedBlocks);
+          
+          // Focus new block after render
+          setTimeout(() => {
+            const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`) as HTMLElement;
+            newBlockElement?.focus();
+            onBlockSelect(newBlock.id);
+          }, 0);
+          return;
+        }
+        
+        // Update current block with text before cursor
+        const updatedCurrentBlock = {
+          ...currentBlock,
+          content: textBeforeCursor,
+        };
+        
+        // Create new block with text after cursor (same style for lists, normal for others)
         const newBlock = {
           id: crypto.randomUUID(),
-          content: '',
-          style: { ...currentBlock.style, listType: 'none' as const },
+          content: textAfterCursor,
+          style: { ...currentBlock.style },
         };
+        
         const updatedBlocks = [
-          ...blocks.slice(0, blockIndex + 1),
+          ...blocks.slice(0, blockIndex),
+          updatedCurrentBlock,
           newBlock,
           ...blocks.slice(blockIndex + 1),
         ];
+        
         onBlocksChange(updatedBlocks);
         
         // Focus new block after render
         setTimeout(() => {
           const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`) as HTMLElement;
-          newBlockElement?.focus();
+          if (newBlockElement) {
+            newBlockElement.focus();
+            // Position cursor at the beginning of the new block
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(newBlockElement);
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
           onBlockSelect(newBlock.id);
         }, 0);
       } else {
-        // Create new block with same list type
+        // Fallback: create empty new block if no selection
         const newBlock = {
           id: crypto.randomUUID(),
           content: '',
