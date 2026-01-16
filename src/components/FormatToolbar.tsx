@@ -11,7 +11,8 @@ import {
   Heading3,
   Type,
   List,
-  ListOrdered
+  ListOrdered,
+  Strikethrough
 } from 'lucide-react';
 import { 
   Select,
@@ -21,71 +22,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { 
-  BlockStyle,
-  FONT_FAMILIES, 
-  FONT_SIZES, 
-  TEXT_COLORS,
-  HeadingLevel,
-  TextAlign,
-  FontFamily,
-  ListType
-} from '@/types/editor';
 import { cn } from '@/lib/utils';
 
 interface FormatToolbarProps {
-  currentStyle: BlockStyle | null;
-  onStyleChange: (style: Partial<BlockStyle>) => void;
+  onFormat: (command: string, value?: string) => void;
   hasSelection: boolean;
 }
 
 export const FormatToolbar = ({
-  currentStyle,
-  onStyleChange,
+  onFormat,
   hasSelection,
 }: FormatToolbarProps) => {
-  const headingButtons: { level: HeadingLevel; icon: React.ReactNode; label: string }[] = [
-    { level: 'p', icon: <Type className="w-4 h-4" />, label: 'Paragraph' },
-    { level: 'h1', icon: <Heading1 className="w-4 h-4" />, label: 'Heading 1' },
-    { level: 'h2', icon: <Heading2 className="w-4 h-4" />, label: 'Heading 2' },
-    { level: 'h3', icon: <Heading3 className="w-4 h-4" />, label: 'Heading 3' },
-  ];
-
-  const alignButtons: { align: TextAlign; icon: React.ReactNode }[] = [
-    { align: 'left', icon: <AlignLeft className="w-4 h-4" /> },
-    { align: 'center', icon: <AlignCenter className="w-4 h-4" /> },
-    { align: 'right', icon: <AlignRight className="w-4 h-4" /> },
-    { align: 'justify', icon: <AlignJustify className="w-4 h-4" /> },
-  ];
-
-  const listButtons: { type: ListType; icon: React.ReactNode; label: string }[] = [
-    { type: 'none', icon: <Type className="w-4 h-4" />, label: 'Normal' },
-    { type: 'unordered', icon: <List className="w-4 h-4" />, label: 'Bullet List' },
-    { type: 'ordered', icon: <ListOrdered className="w-4 h-4" />, label: 'Numbered List' },
-  ];
-
-  const style = currentStyle || {
-    fontFamily: 'sans' as FontFamily,
-    fontSize: 16,
-    textColor: '#1a1a2e',
-    textAlign: 'left' as TextAlign,
-    lineHeight: 1.6,
-    headingLevel: 'p' as HeadingLevel,
-    bold: false,
-    italic: false,
-    underline: false,
-    listType: 'none' as ListType,
-  };
+  const fontSizes = ['1', '2', '3', '4', '5', '6', '7'];
 
   return (
     <div className={cn(
-      "flex items-center gap-1 p-2 bg-toolbar rounded-lg border border-border animate-fade-in transition-opacity",
-      !hasSelection && "opacity-60"
+      "flex items-center gap-1 p-2 bg-toolbar rounded-lg border border-border animate-fade-in transition-opacity flex-wrap"
     )}>
       {/* Selection indicator */}
       <div className={cn(
@@ -94,164 +46,141 @@ export const FormatToolbar = ({
           ? "bg-primary/10 text-primary" 
           : "bg-muted text-muted-foreground"
       )}>
-        {hasSelection ? "Editing block" : "Select a block"}
+        {hasSelection ? "Text selected" : "Select text to format"}
       </div>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
-      {/* Font Family */}
-      <Select
-        value={style.fontFamily}
-        onValueChange={(value) => onStyleChange({ fontFamily: value as FontFamily })}
-        disabled={!hasSelection}
-      >
-        <SelectTrigger className="w-[130px] h-8 text-sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {FONT_FAMILIES.map((font) => (
-            <SelectItem key={font.value} value={font.value} className={font.className}>
-              {font.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       {/* Font Size */}
       <Select
-        value={style.fontSize.toString()}
-        onValueChange={(value) => onStyleChange({ fontSize: parseInt(value) })}
-        disabled={!hasSelection}
+        defaultValue="3"
+        onValueChange={(value) => onFormat('fontSize', value)}
       >
-        <SelectTrigger className="w-[70px] h-8 text-sm">
-          <SelectValue />
+        <SelectTrigger className="w-[80px] h-8 text-sm">
+          <SelectValue placeholder="Size" />
         </SelectTrigger>
         <SelectContent>
-          {FONT_SIZES.map((size) => (
-            <SelectItem key={size} value={size.toString()}>
-              {size}
+          {fontSizes.map((size) => (
+            <SelectItem key={size} value={size}>
+              Size {size}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-
-      <Separator orientation="vertical" className="h-6 mx-1" />
-
-      {/* Text Color */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <button 
-            className={cn("toolbar-button", !hasSelection && "pointer-events-none")}
-            title="Text Color"
-            disabled={!hasSelection}
-          >
-            <div 
-              className="w-5 h-5 rounded border border-border" 
-              style={{ backgroundColor: style.textColor }}
-            />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3">
-          <div className="grid grid-cols-6 gap-2">
-            {TEXT_COLORS.map((color) => (
-              <button
-                key={color}
-                className={cn(
-                  "w-6 h-6 rounded-full border-2 transition-transform hover:scale-110",
-                  style.textColor === color ? "border-primary" : "border-transparent"
-                )}
-                style={{ backgroundColor: color }}
-                onClick={() => onStyleChange({ textColor: color })}
-              />
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Text Style */}
       <button
-        className={cn("toolbar-button", style.bold && "active", !hasSelection && "pointer-events-none opacity-50")}
-        onClick={() => onStyleChange({ bold: !style.bold })}
-        title="Bold"
-        disabled={!hasSelection}
+        className="toolbar-button"
+        onClick={() => onFormat('bold')}
+        title="Bold (Ctrl+B)"
       >
         <Bold className="w-4 h-4" />
       </button>
       <button
-        className={cn("toolbar-button", style.italic && "active", !hasSelection && "pointer-events-none opacity-50")}
-        onClick={() => onStyleChange({ italic: !style.italic })}
-        title="Italic"
-        disabled={!hasSelection}
+        className="toolbar-button"
+        onClick={() => onFormat('italic')}
+        title="Italic (Ctrl+I)"
       >
         <Italic className="w-4 h-4" />
       </button>
       <button
-        className={cn("toolbar-button", style.underline && "active", !hasSelection && "pointer-events-none opacity-50")}
-        onClick={() => onStyleChange({ underline: !style.underline })}
-        title="Underline"
-        disabled={!hasSelection}
+        className="toolbar-button"
+        onClick={() => onFormat('underline')}
+        title="Underline (Ctrl+U)"
       >
         <Underline className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('strikeThrough')}
+        title="Strikethrough"
+      >
+        <Strikethrough className="w-4 h-4" />
       </button>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Headings */}
-      {headingButtons.map((btn) => (
-        <button
-          key={btn.level}
-          className={cn(
-            "toolbar-button", 
-            style.headingLevel === btn.level && "active",
-            !hasSelection && "pointer-events-none opacity-50"
-          )}
-          onClick={() => onStyleChange({ headingLevel: btn.level })}
-          title={btn.label}
-          disabled={!hasSelection}
-        >
-          {btn.icon}
-        </button>
-      ))}
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('formatBlock', 'p')}
+        title="Paragraph"
+      >
+        <Type className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('formatBlock', 'h1')}
+        title="Heading 1"
+      >
+        <Heading1 className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('formatBlock', 'h2')}
+        title="Heading 2"
+      >
+        <Heading2 className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('formatBlock', 'h3')}
+        title="Heading 3"
+      >
+        <Heading3 className="w-4 h-4" />
+      </button>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Alignment */}
-      {alignButtons.map((btn) => (
-        <button
-          key={btn.align}
-          className={cn(
-            "toolbar-button", 
-            style.textAlign === btn.align && "active",
-            !hasSelection && "pointer-events-none opacity-50"
-          )}
-          onClick={() => onStyleChange({ textAlign: btn.align })}
-          title={`Align ${btn.align}`}
-          disabled={!hasSelection}
-        >
-          {btn.icon}
-        </button>
-      ))}
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('justifyLeft')}
+        title="Align Left"
+      >
+        <AlignLeft className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('justifyCenter')}
+        title="Align Center"
+      >
+        <AlignCenter className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('justifyRight')}
+        title="Align Right"
+      >
+        <AlignRight className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('justifyFull')}
+        title="Justify"
+      >
+        <AlignJustify className="w-4 h-4" />
+      </button>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Lists */}
-      {listButtons.map((btn) => (
-        <button
-          key={btn.type}
-          className={cn(
-            "toolbar-button", 
-            style.listType === btn.type && "active",
-            !hasSelection && "pointer-events-none opacity-50"
-          )}
-          onClick={() => onStyleChange({ listType: btn.type })}
-          title={btn.label}
-          disabled={!hasSelection}
-        >
-          {btn.icon}
-        </button>
-      ))}
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('insertUnorderedList')}
+        title="Bullet List"
+      >
+        <List className="w-4 h-4" />
+      </button>
+      <button
+        className="toolbar-button"
+        onClick={() => onFormat('insertOrderedList')}
+        title="Numbered List"
+      >
+        <ListOrdered className="w-4 h-4" />
+      </button>
     </div>
   );
 };

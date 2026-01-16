@@ -1,38 +1,19 @@
 import { useState, useRef, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { FormatToolbar } from '@/components/FormatToolbar';
-import { BlockEditor } from '@/components/BlockEditor';
+import { BlockEditor, BlockEditorRef } from '@/components/BlockEditor';
 import { PreviewPanel } from '@/components/PreviewPanel';
-import { DocumentOutline } from '@/components/DocumentOutline';
 import { PageLayoutPanel } from '@/components/PageLayoutPanel';
 import { generatePDF } from '@/utils/pdfGenerator';
-import {
-  TextBlock,
-  BlockStyle,
-  DEFAULT_BLOCK_STYLE,
-  createBlock,
-  DocumentSettings,
-  PageLayout
-} from '@/types/editor';
+import { PageLayout } from '@/types/editor';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { FileText, Settings, List } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 const Index = () => {
-  const [blocks, setBlocks] = useState<TextBlock[]>(() => [
-    createBlock('', DEFAULT_BLOCK_STYLE),
-  ]);
-  const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
-  const [documentSettings, setDocumentSettings] = useState<DocumentSettings>({
-    fontFamily: 'sans',
-    fontSize: 16,
-    textColor: '#1a1a2e',
-    textAlign: 'left',
-    lineHeight: 1.6,
-    headingLevel: 'p',
-    showDocumentOutline: true,
-    showRuler: false,
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [content, setContent] = useState('<p><br></p>');
+  const [hasSelection, setHasSelection] = useState(false);
   const [pageLayout, setPageLayout] = useState<PageLayout>({
     marginTop: 20,
     marginBottom: 20,
@@ -45,50 +26,21 @@ const Index = () => {
     showHeader: false,
     showFooter: false,
   });
-  const [activePanel, setActivePanel] = useState<'outline' | 'layout' | null>('outline');
-  const previewRef = useRef<HTMLDivElement>(null);
+  
+  const editorRef = useRef<BlockEditorRef>(null);
 
-  const selectedBlocks = blocks.filter(b => selectedBlockIds.includes(b.id));
-
-  const handleStyleChange = useCallback((styleUpdate: Partial<BlockStyle>) => {
-    if (selectedBlockIds.length === 0) return;
-    
-    setBlocks(prev => prev.map(block =>
-      selectedBlockIds.includes(block.id)
-        ? { ...block, style: { ...block.style, ...styleUpdate } }
-        : block
-    ));
-  }, [selectedBlockIds]);
-
-  const handleBlocksReorder = useCallback((sourceIndex: number, destinationIndex: number) => {
-    const reorderedBlocks = [...blocks];
-    const [removed] = reorderedBlocks.splice(sourceIndex, 1);
-    reorderedBlocks.splice(destinationIndex, 0, removed);
-    setBlocks(reorderedBlocks);
-  }, [blocks]);
+  const handleFormat = useCallback((command: string, value?: string) => {
+    editorRef.current?.applyFormat(command, value);
+  }, []);
 
   const handleFileLoad = useCallback((fileContent: string) => {
-    // Split file content into paragraphs and create blocks
+    // Convert plain text to HTML paragraphs
     const paragraphs = fileContent.split(/\n\n+/).filter(p => p.trim());
-    const newBlocks = paragraphs.map(content => 
-      createBlock(content.trim(), DEFAULT_BLOCK_STYLE)
-    );
-    
-    if (newBlocks.length === 0) {
-      newBlocks.push(createBlock('', DEFAULT_BLOCK_STYLE));
-    }
-    
-    setBlocks(newBlocks);
-    setSelectedBlockIds(newBlocks[0] ? [newBlocks[0].id] : []);
+    const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+    setContent(htmlContent || '<p><br></p>');
   }, []);
 
-  const handleBlockClick = useCallback((blockId: string) => {
-    // Scroll to block
-    const element = document.querySelector(`[data-block-id="${blockId}"]`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, []);
+  const hasContent = content.replace(/<[^>]*>/g, '').trim().length > 0;
 
   const handleExport = useCallback(() => {
     if (!hasContent) {
@@ -97,15 +49,13 @@ const Index = () => {
     }
 
     try {
-      generatePDF(blocks, pageLayout);
+      generatePDF(content, pageLayout);
       toast.success('PDF exported successfully!');
     } catch (error) {
       toast.error('Failed to generate PDF');
       console.error(error);
     }
-  }, [blocks, pageLayout, hasContent]);
-
-  const hasContent = blocks.some(b => b.content.trim());
+  }, [content, pageLayout, hasContent]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -117,42 +67,38 @@ const Index = () => {
 
       <div className="flex-1 flex">
         {/* Left Sidebar */}
-        <div className="w-64 border-r bg-card">
-          <div className="flex border-b">
+        <div className={`border-r bg-card transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-12'}`}>
+          {/* Toggle Button */}
+          <div className="flex items-center justify-between p-2 border-b">
+            {sidebarOpen && <span className="text-sm font-medium">Sidebar</span>}
             <Button
-              variant={activePanel === 'outline' ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
-              onClick={() => setActivePanel(activePanel === 'outline' ? null : 'outline')}
-              className="flex-1 rounded-none"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1 h-8 w-8"
+              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <List className="w-4 h-4 mr-2" />
-              Outline
-            </Button>
-            <Button
-              variant={activePanel === 'layout' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActivePanel(activePanel === 'layout' ? null : 'layout')}
-              className="flex-1 rounded-none"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Layout
+              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
             </Button>
           </div>
 
-          {activePanel === 'outline' && (
-            <DocumentOutline
-              blocks={blocks}
-              selectedBlockIds={selectedBlockIds}
-              onBlockSelect={setSelectedBlockIds}
-              onBlockClick={handleBlockClick}
-            />
-          )}
-
-          {activePanel === 'layout' && (
+          {sidebarOpen ? (
             <PageLayoutPanel
               layout={pageLayout}
               onLayoutChange={setPageLayout}
             />
+          ) : (
+            <div className="flex flex-col items-center gap-2 p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(true)}
+                className="p-1 h-8 w-8"
+                title="Layout Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            </div>
           )}
         </div>
 
@@ -160,22 +106,19 @@ const Index = () => {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col p-6 gap-4">
             <FormatToolbar
-              currentStyle={selectedBlocks.length === 1 ? selectedBlocks[0].style : null}
-              onStyleChange={handleStyleChange}
-              hasSelection={selectedBlockIds.length > 0}
+              onFormat={handleFormat}
+              hasSelection={hasSelection}
             />
 
             <div className="flex-1 flex gap-6 min-h-0">
               <BlockEditor
-                blocks={blocks}
-                selectedBlockIds={selectedBlockIds}
-                onBlocksChange={setBlocks}
-                onBlockSelect={setSelectedBlockIds}
-                onBlocksReorder={handleBlocksReorder}
+                ref={editorRef}
+                content={content}
+                onContentChange={setContent}
+                onSelectionChange={setHasSelection}
               />
               <PreviewPanel
-                ref={previewRef}
-                blocks={blocks}
+                content={content}
               />
             </div>
           </div>
