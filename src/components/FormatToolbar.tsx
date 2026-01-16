@@ -35,6 +35,11 @@ export const FormatToolbar = ({
 }: FormatToolbarProps) => {
   const fontSizes = ['1', '2', '3', '4', '5', '6', '7'];
 
+  // Prevent focus loss when clicking toolbar buttons
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+  };
+
   return (
     <div className={cn(
       "flex items-center gap-1 p-2 bg-toolbar rounded-lg border border-border animate-fade-in transition-opacity flex-wrap"
@@ -56,12 +61,12 @@ export const FormatToolbar = ({
         defaultValue="3"
         onValueChange={(value) => onFormat('fontSize', value)}
       >
-        <SelectTrigger className="w-[80px] h-8 text-sm">
+        <SelectTrigger className="w-[80px] h-8 text-sm" onMouseDown={handleMouseDown}>
           <SelectValue placeholder="Size" />
         </SelectTrigger>
         <SelectContent>
           {fontSizes.map((size) => (
-            <SelectItem key={size} value={size}>
+            <SelectItem key={size} value={size} onMouseDown={handleMouseDown}>
               Size {size}
             </SelectItem>
           ))}
@@ -73,6 +78,7 @@ export const FormatToolbar = ({
       {/* Text Style */}
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('bold')}
         title="Bold (Ctrl+B)"
       >
@@ -80,6 +86,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('italic')}
         title="Italic (Ctrl+I)"
       >
@@ -87,6 +94,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('underline')}
         title="Underline (Ctrl+U)"
       >
@@ -94,6 +102,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('strikeThrough')}
         title="Strikethrough"
       >
@@ -105,6 +114,7 @@ export const FormatToolbar = ({
       {/* Headings */}
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('formatBlock', 'p')}
         title="Paragraph"
       >
@@ -112,6 +122,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('formatBlock', 'h1')}
         title="Heading 1"
       >
@@ -119,6 +130,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('formatBlock', 'h2')}
         title="Heading 2"
       >
@@ -126,6 +138,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('formatBlock', 'h3')}
         title="Heading 3"
       >
@@ -137,6 +150,7 @@ export const FormatToolbar = ({
       {/* Alignment */}
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('justifyLeft')}
         title="Align Left"
       >
@@ -144,6 +158,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('justifyCenter')}
         title="Align Center"
       >
@@ -151,6 +166,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('justifyRight')}
         title="Align Right"
       >
@@ -158,6 +174,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('justifyFull')}
         title="Justify"
       >
@@ -169,6 +186,7 @@ export const FormatToolbar = ({
       {/* Lists */}
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('insertUnorderedList')}
         title="Bullet List"
       >
@@ -176,6 +194,7 @@ export const FormatToolbar = ({
       </button>
       <button
         className="toolbar-button"
+        onMouseDown={handleMouseDown}
         onClick={() => onFormat('insertOrderedList')}
         title="Numbered List"
       >
