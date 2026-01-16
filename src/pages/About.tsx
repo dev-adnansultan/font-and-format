@@ -281,9 +281,6 @@ const About = () => {
                   <ExternalLink className="w-5 h-5" />
                 </a>
               </div>
-              <p className="text-white/40 text-sm mt-4">
-                A product by <a href="https://nxgntools.com" target="_blank" rel="noopener noreferrer" className="text-[#3FBCBA] hover:underline">NxgnTools</a>
-              </p>
             </div>
           </div>
           <div className="border-t border-white/10 pt-8">

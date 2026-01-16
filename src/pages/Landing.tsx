@@ -247,17 +247,45 @@ const Landing = () => {
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Get Started</h4>
-              <p className="text-white/60 mb-4">
-                Create your first document in seconds. No signup required.
-              </p>
-              <Button 
-                onClick={() => navigate('/editor')}
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10"
-              >
-                Open Editor
-              </Button>
+              <h4 className="text-white font-semibold mb-4">Connect</h4>
+              <div className="flex gap-3 mb-4">
+                <a 
+                  href="https://www.producthunt.com/posts/font-and-format"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors"
+                  title="Product Hunt"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13.604 8.4h-3.405V12h3.405c.995 0 1.801-.806 1.801-1.801 0-.993-.806-1.799-1.801-1.799zM12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm1.604 14.4h-3.405V18H7.801V6h5.804c2.319 0 4.2 1.88 4.2 4.199 0 2.321-1.881 4.201-4.201 4.201z"/>
+                  </svg>
+                </a>
+                <a 
+                  href="https://github.com/nxgntools/font-and-format"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors"
+                  title="GitHub"
+                >
+                  <Github className="w-5 h-5" />
+                </a>
+                <a 
+                  href="mailto:contact@nxgntools.com"
+                  className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors"
+                  title="Email"
+                >
+                  <Mail className="w-5 h-5" />
+                </a>
+                <a 
+                  href="https://nxgntools.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors"
+                  title="NxgnTools"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                </a>
+              </div>
             </div>
           </div>
           <div className="border-t border-white/10 pt-8">
